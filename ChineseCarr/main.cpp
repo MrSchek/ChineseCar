@@ -4,8 +4,7 @@
 
 using namespace std;
 
-// Мощность автомобиля
-enum class Car_power : int
+enum class Source_power : int
 {
     Low,
     Average,
@@ -13,248 +12,334 @@ enum class Car_power : int
     Unknown
 };
 
-class Car {
+enum class car_launch_method : int
+{
+    remote_app,
+    kay_command,
+    website,
+
+    None
+};
+
+class CarStartStrategy {
+public:
+    virtual ~CarStartStrategy() {}
+    virtual void start() = 0;
+};
+
+class RemoteAppCarStartStrategy : public CarStartStrategy
+{
+    void start() { cout << "Запускаю машину с мобильного приложения"; }
+};
+
+class KayCommandCarStartStrategy : public CarStartStrategy
+{
+    void start() { cout << "Запускаю машину ключом зажигания"; }
+};
+
+class WebsiteCarStartStrategy : public CarStartStrategy
+{
+    void start() { cout << "Запускаю машину с сайта"; }
+};
+
+CarStartStrategy* CreateCarStartStrategy(car_launch_method manner) {
+    switch (manner) {
+    case car_launch_method::remote_app: return new RemoteAppCarStartStrategy;
+    case car_launch_method::kay_command: return new KayCommandCarStartStrategy;
+    case car_launch_method::website: return new WebsiteCarStartStrategy;
+    default:return nullptr;
+    }
+}
+
+class SmartCar {
 private:
-    bool electric;
-    Car_power Power;
+    bool has_subscription;
+    Source_power power;
+
+    CarStartStrategy* __CarStartStrategy;
+
+    void DoCarStartStrategy() {
+        if (__CarStartStrategy != nullptr) {
+            __CarStartStrategy->start();
+        }
+        else
+        {
+            cout << "Ничего не делать! ";
+        }
+    }
+
+    void DetectSubscription() {
+        if (IsSubscription())
+        {
+            cout << "Есть оплата каршеринга ";
+        }
+        else
+        {
+            cout << "Нет оплаты каршеринга! ";
+        }
+    }
 
 protected:
-    string brand;
-    string fuel_type;
+    string car_brand;
+    string protocols;
     string OS;
 
-    bool subscription;
-
 public:
-    Car(Car_power power) : Power(power), subscription(false) {
-        subscription = static_cast<bool>(rand() % 2);
+    SmartCar(Source_power power) : power(power), has_subscription(false), __CarStartStrategy(nullptr) {
+        has_subscription = static_cast<bool>(rand() % 2);
     };
-    virtual ~Car();
 
-    string get_brand() const { return brand; }
-    bool isElectric() const { return electric; }
+    virtual ~SmartCar() {
+        if (__CarStartStrategy != nullptr) delete __CarStartStrategy;
+    }
+
+    string get_car_brand() const { return car_brand; }
+    bool get_has_subscription() const { return has_subscription; }
     string getOS() const { return OS; }
 
-    bool IsSubscription() const { return subscription; }
+    bool IsSubscription() const { return has_subscription; }
+    Source_power GetPower() const { return power; }
 
-    Car_power GetPower() const { return Power; }
+    void SetCarStartStrategy(CarStartStrategy* carStartStrategy)
+    {
+        __CarStartStrategy = carStartStrategy;
+    }
 
-    virtual void drive() {
-        if (IsSubscription()) {
-            cout << "Запускаю автомобиль " << brand << endl;
-        }
-        else {
-            cout << "Нет оплаты! Невозможно запустить " << brand << endl;
-        }
+    virtual void PrintType() = 0;
+    virtual void ChooseCar() = 0;
+
+    void start()
+    {
+        PrintType();
+        cout << " : ";
+
+        DetectSubscription();
+        cout << " : ";
+
+        ChooseCar();
+        cout << " : ";
+
+        DoCarStartStrategy();
+
+        cout << endl;
     }
 };
 
-Car::~Car() {}
-
-class BYD : public Car {
-public:
-    BYD();
-    ~BYD();
-
-    string get_brand() const;
-
-    void drive();
-};
-
-BYD::BYD() : Car(Car_power::High) {
-    brand = "BYD";
-    fuel_type = "Электрический";
-}
-
-BYD::~BYD() {}
-
-string BYD::get_brand() const { return Car::get_brand(); }
-
-void BYD::drive() {
-    Car::drive();
-    cout << "Автомобиль " << brand << " на ходу!" << endl;
-}
-
-class Geely : public Car {
+class Geely : public SmartCar {
 public:
     Geely();
     ~Geely();
 
-    void drive();
+    void PrintType() { cout << "Geely"; };
+    void ChooseCar() { cout << "Выбираю модель Geely"; };
 };
 
-Geely::Geely() : Car(Car_power::Low) {
-    brand = "Geely";
-    fuel_type = "Бензин";
+Geely::Geely() : SmartCar(Source_power::High)
+{
+    SetCarStartStrategy(CreateCarStartStrategy(car_launch_method::kay_command));
+    car_brand = "Geely";
+    protocols = "Wi-Fi, Bluetooth, 4G";
 }
 
 Geely::~Geely() {}
 
-void Geely::drive() {
-    Car::drive();
-    cout << "Автомобиль " << brand << " на ходу!" << endl;
+class BYD : public SmartCar {
+public:
+    BYD();
+    ~BYD();
+
+    void PrintType() { cout << "BYD"; };
+    void ChooseCar() { cout << "Выбираю модель BYD"; };
+};
+
+BYD::BYD() : SmartCar(Source_power::Low) {
+    SetCarStartStrategy(CreateCarStartStrategy(car_launch_method::website));
+    car_brand = "BYD";
+    protocols = "Wi-Fi, Bluetooth";
 }
 
-class NIO : public Car {
+BYD::~BYD() {}
+
+class NIO : public SmartCar {
 public:
     NIO();
     ~NIO();
 
-    void drive();
+    void PrintType() { cout << "NIO"; };
+    void ChooseCar() { cout << "Выбираю модель NIO"; };
 };
 
-NIO::NIO() : Car(Car_power::Average) {
-    brand = "NIO";
-    fuel_type = "Электрический";
+NIO::NIO() : SmartCar(Source_power::Average) {
+    SetCarStartStrategy(CreateCarStartStrategy(car_launch_method::remote_app));
+    car_brand = "NIO";
+    protocols = "Wi-Fi, Bluetooth, 5G";
 }
 
 NIO::~NIO() {}
 
-void NIO::drive() {
-    Car::drive();
-    cout << "Автомобиль " << brand << " на ходу!" << endl;
-}
-
 // Фабричный метод
-
-enum class Car_type : int
+enum class SmartCar_type : int
 {
-    BYD = 1,
-    Geely = 2,
+    Geely = 1,
+    BYD = 2,
     NIO = 3,
 
     Undefined = 0
 };
 
-Car* Create_car(Car_type type) {
-    Car* new_car = nullptr;
+SmartCar* CreateSmartCar(SmartCar_type type)
+{
+    SmartCar* new_smart_car = nullptr;
 
-    if (type == Car_type::BYD) {
-        new_car = new BYD;
+    if (type == SmartCar_type::Geely)
+    {
+        new_smart_car = new Geely;
     }
-    else if (type == Car_type::Geely) {
-        new_car = new Geely;
+    else if (type == SmartCar_type::BYD)
+    {
+        new_smart_car = new BYD;
     }
-    else if (type == Car_type::NIO) {
-        new_car = new NIO;
+    else if (type == SmartCar_type::NIO)
+    {
+        new_smart_car = new NIO;
     }
 
-    return new_car;
+    return new_smart_car;
 }
 
-// Декоратор итератора для выделения автомобилей по мощности
-
-class PowerDecorator : public IteratorDecorator<class Car*> {
+// Декоратор итератора для выделения машин по мощности
+class PowerDecorator : public IteratorDecorator<class SmartCar*>
+{
 private:
-    Car_power TargetPower;
+    Source_power TargetPower;
 
 public:
-    PowerDecorator(Iterator<Car*>* it, Car_power power)
-        : IteratorDecorator<Car*>(it), TargetPower(power) {}
+    PowerDecorator(Iterator<SmartCar*>* it, Source_power power)
+        : IteratorDecorator<SmartCar*>(it), TargetPower(power) {}
 
-    void First() {
+    void First()
+    {
         It->First();
-        while (!It->IsDone() && It->GetCurrent()->GetPower() != TargetPower) {
+        while (!It->IsDone() && It->GetCurrent()->GetPower() != TargetPower)
+        {
             It->Next();
         }
     }
 
-    void Next() {
-        do {
+    void Next()
+    {
+        do
+        {
             It->Next();
+
         } while (!It->IsDone() && It->GetCurrent()->GetPower() != TargetPower);
     }
 };
 
-// Декоратор итератора для выделения автомобилей по наличию оплаты
-
-class SubscriptionDecorator : public IteratorDecorator<class Car*> {
+// Декоратор итератора для выделения машин по наличию оплаты каршеринга
+class SubscriptionDecorator : public IteratorDecorator<class SmartCar*>
+{
 private:
     bool TargetSubscription;
 
 public:
-    SubscriptionDecorator(Iterator<Car*>* it, bool isSubscription)
-        : IteratorDecorator<Car*>(it), TargetSubscription(isSubscription) {}
+    SubscriptionDecorator(Iterator<SmartCar*>* it, bool isSubscription)
+        : IteratorDecorator<SmartCar*>(it), TargetSubscription(isSubscription) {}
 
-    void First() {
+    void First()
+    {
         It->First();
-        while (!It->IsDone() && It->GetCurrent()->IsSubscription() != TargetSubscription) {
+        while (!It->IsDone() && It->GetCurrent()->IsSubscription() != TargetSubscription)
+        {
             It->Next();
         }
     }
 
-    void Next() {
-        do {
+    void Next()
+    {
+        do
+        {
             It->Next();
+
         } while (!It->IsDone() && It->GetCurrent()->IsSubscription() != TargetSubscription);
     }
 };
 
-void Drive_all(Iterator<Car*>* it) {
-    for (it->First(); !it->IsDone(); it->Next()) {
-        Car* currentCar = it->GetCurrent();
-        currentCar->drive();
+void StartAll(Iterator<SmartCar*>* it)
+{
+    for (it->First(); !it->IsDone(); it->Next())
+    {
+        SmartCar* currentSmartCar = it->GetCurrent();
+        currentSmartCar->start();
     }
 }
 
-int main() {
+int main()
+{
     setlocale(LC_ALL, "Russian");
 
     size_t N = 30;
 
-
-    ArrayClass<Car*> carArray;
-    for (size_t i = 0; i < N; i++) {
-        int car_num = rand() % 3 + 1;
-        Car_type car_type = static_cast<Car_type>(car_num);
-        Car* newCar = Create_car(car_type);
-        carArray.Add(newCar);
+    ArrayClass<SmartCar*> smartcarArray;
+    for (size_t i = 0; i < N; i++)
+    {
+        int smartcar_num = rand() % 3 + 1;
+        SmartCar_type smart_car_type = static_cast<SmartCar_type>(smartcar_num);
+        SmartCar* newSmartCar = CreateSmartCar(smart_car_type);
+        smartcarArray.Add(newSmartCar);
     }
 
-    wcout << L"Размер массива автомобилей: " << carArray.Size() << endl;
+    wcout << L"Размер массива машин: " << smartcarArray.Size() << endl;
 
-    list<Car*> carList;
-    for (size_t i = 0; i < N; i++) {
-        int car_num = rand() % 3 + 1;
-        Car_type car_type = static_cast<Car_type>(car_num);
-        Car* newCar = Create_car(car_type);
-        carList.push_back(newCar);
+    list<SmartCar*> smartcarList;
+    for (size_t i = 0; i < N; i++)
+    {
+        int smartcar_num = rand() % 3 + 1;
+        SmartCar_type smart_car_type = static_cast<SmartCar_type>(smartcar_num);
+        SmartCar* newSmartCar = CreateSmartCar(smart_car_type);
+        smartcarList.push_back(newSmartCar);
     }
 
-    wcout << L"Размер списка автомобилей: " << carList.size() << endl;
+    wcout << L"Размер списка машин: " << smartcarList.size() << endl;
 
-    // Обход всех автомобилей
-    cout << endl << "Попробовать запустить все автомобили: " << endl;
-    Iterator<Car*>* allIt = carArray.GetIterator();
-    Drive_all(allIt);
+    // Обход всех элементов при помощи итератора
+    cout << endl << "Попробовать запустить всё: " << endl;
+    Iterator<SmartCar*>* allIt = smartcarArray.GetIterator();
+    StartAll(allIt);
     delete allIt;
 
-    // Обход всех автомобилей с оплатой каршеринга
+    // Обход всех машин с оплатой каршеринга
     cout << endl << "Запустить только если есть оплата каршеринга:" << endl;
-    Iterator<Car*>* goodIt = new SubscriptionDecorator(carArray.GetIterator(), true);
-    Drive_all(goodIt);
+    Iterator<SmartCar*>* goodIt = new SubscriptionDecorator(smartcarArray.GetIterator(), true);
+    StartAll(goodIt);
     delete goodIt;
 
-    // Обход всех мощных автомобилей
-    cout << endl << "Все мощные автомобили:" << endl;
-    Iterator<Car*>* powerIt = new PowerDecorator(carArray.GetIterator(), Car_power::High);
-    Drive_all(powerIt);
-    delete powerIt;
+    // Обход всех мощных машин
+    cout << endl << "Все мощные машины:" << endl;
+    Iterator<SmartCar*>* orangeIt = new PowerDecorator(smartcarArray.GetIterator(), Source_power::High);
+    StartAll(orangeIt);
+    delete orangeIt;
 
-    // Обход всех мощных автомобилей с оплатой каршеринга
-    cout << endl << "Все мощные автомобили с оплатой каршеринга:" << endl;
-    Iterator<Car*>* goodPowerIt =
-        new SubscriptionDecorator(new PowerDecorator(carArray.GetIterator(), Car_power::High), true);
-    Drive_all(goodPowerIt);
-    delete goodPowerIt;
+    // Обход всех мощных машин с оплатой каршеринга
+    cout << endl << "Все мощные машины с оплатой каршеринга:" << endl;
+    Iterator<SmartCar*>* goodOrangeIt = new SubscriptionDecorator(new PowerDecorator(smartcarArray.GetIterator(), Source_power::High), true);
+    StartAll(goodOrangeIt);
+    delete goodOrangeIt;
 
     // Демонстрация работы адаптера
-    cout << endl << "Все мощные автомобили с оплатой (другой контейнер):" << endl;
-    Iterator<Car*>* adaptedIt = new ConstIteratorAdapter<std::list<Car*>, Car*>(&carList);
-    Iterator<Car*>* adaptedPowerIt = new SubscriptionDecorator(new PowerDecorator(adaptedIt, Car_power::High), true);
-    Drive_all(adaptedPowerIt);
-    delete adaptedPowerIt;
+    cout << endl << "Все мощные машины с оплатой каршеринга (другой контейнер):" << endl;
+    Iterator<SmartCar*>* adaptedIt = new ConstIteratorAdapter<std::list<SmartCar*>, SmartCar*>(&smartcarList);
+    Iterator<SmartCar*>* adaptedOrangeIt = new SubscriptionDecorator(new PowerDecorator(adaptedIt, Source_power::High), true);
+    StartAll(adaptedOrangeIt);
+    delete adaptedOrangeIt;
+
+    for (size_t i = 0; i < smartcarArray.Size(); i++) {
+        delete smartcarArray.GetElement(i);
+    }
+
+    for (auto car : smartcarList) {
+        delete car;
+    }
 
     return 0;
 }
-

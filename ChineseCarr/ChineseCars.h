@@ -1,7 +1,7 @@
 #ifndef CHINESE_CARS_H
 #define CHINESE_CARS_H
 
-// Шаблонный класс реализующий Итератор
+// Шаблонный класс, реализующий паттерн "Итератор"
 template<typename T>
 class Iterator
 {
@@ -16,6 +16,7 @@ public:
     virtual T GetCurrent() const = 0;
 };
 
+// Реализация паттерна "Итератор", предназначенная для обхода стека
 
 template<typename T>
 class StackIterator : public Iterator<T>
@@ -36,7 +37,7 @@ public:
     T GetCurrent() const override { return StackContainer[Pos]; }
 };
 
-// Шаблонный класс Стек
+// Шаблонный класс "Стек"
 const size_t MaxSize = 100;
 
 template <typename T>
@@ -55,7 +56,7 @@ public:
 
     Stack_class() : Top(0) {}
 
-    // Получение итератора для обхода контейнера
+    // Получить итератор для обхода контейнера
     class Iterator<T>* GetIterator()
     {
         return new StackIterator<T>(Items, Top);
@@ -85,7 +86,7 @@ public:
 };
 
 
-// Шаблонный класс Массив
+// Шаблонный класс "Массив"
 template <typename T>
 class ArrayClass
 {
@@ -100,7 +101,7 @@ public:
     size_t Size() const { return ArraySize; }
     T GetElement(size_t index) const { return Items[index]; }
 
-    // Получение итератора для обхода контейнера
+    // Получить итератор для обхода контейнера
     class Iterator<T>* GetIterator()
     {
         return new ArrayIterator<T>(Items, ArraySize);
@@ -110,7 +111,6 @@ public:
 };
 
 // Декоратор для итератора (пустой)
-
 template<typename T>
 class IteratorDecorator : public Iterator<T>
 {
